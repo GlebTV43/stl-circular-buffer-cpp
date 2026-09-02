@@ -32,7 +32,7 @@ public:
 
 private:
 
-    [[no_unique_address]] allocator_type allocator_;
+    allocator_type allocator_;
 
     pointer data_{};
     size_type size_ = 0;

@@ -25,42 +25,111 @@ public:
 
     basic_iterator() = default; // тк есть другой закрытый конструктор =6 
 
-    reference operator*() const;
-    pointer operator->() const;
-
-    basic_iterator& operator++();
-    basic_iterator operator++(int);
-
-    basic_iterator& operator--();
-    basic_iterator operator--(int);
-
-    basic_iterator& operator+=(difference_type n);
-
-    basic_iterator& operator-=(difference_type n);
-
-    basic_iterator& operator+(difference_type n)
+    reference operator*() const
     {
+        assert(container_ != nullptr);
+        assert(position_ >= 0);
+        assert(position_ < container_->size());
 
+        return container_->data_[real_index(position_)];
     }
 
-    basic_iterator& operator-(difference_type n)
+    pointer operator->() const // прочитал про std::adressof, его исполоьзвать лучш тк пользовательский тип может перегрузить оператор взятия адреса &
     {
-
+        return std::addressof(**this);
     }
 
-    basic_iterator& operator+(const basic_iterator& other)
+    basic_iterator& operator++()
     {
+        assert(container_ != nullptr);
+        assert(position_ >= 0);
+        assert(position_ < container_->size());
 
+        ++position_;
+        return *this; 
     }
 
-    basic_iterator& operator-(const basic_iterator& other)
+    basic_iterator operator++(int)
     {
-
+        basic_iterator iter = *this;
+        ++(*this);
+        return iter;
     }
 
+    basic_iterator& operator--()
+    {
+        assert(container_ != nullptr);
+        assert(position_ > 0);
+        assert(position_ <= container_->size());
 
+        --position_;
+        return *this;
+    }
 
-    reference operator[](difference_type n) const;
+    basic_iterator operator--(int)
+    {
+        basic_iterator iter = *this;
+        --(*this);
+        return iter;
+    }
+
+    basic_iterator& operator+=(difference_type n)
+    {
+        assert(container_ != nullptr);
+
+        difference_type new_pos = position_ + n;
+        
+        assert(new_pos >= 0);
+        assert(new_pos <= container_->size());
+
+        position_ = new_pos;
+        return *this;
+    }
+
+    basic_iterator& operator-=(difference_type n)
+    {
+        assert(container_ != nullptr);
+
+        difference_type new_pos = position_ - n;
+        
+        assert(new_pos >= 0);
+        assert(new_pos <= container_->size());
+
+        position_ = new_pos;
+        return *this;
+    }
+
+    basic_iterator operator+(difference_type n) const
+    {
+        basic_iterator iter = *this;
+        iter += n;
+        return iter; 
+    }
+
+    friend basic_iterator operator+(difference_type n, const basic_iterator& iter)
+    {
+        return iter + n;
+    }
+
+    basic_iterator operator-(difference_type n) const
+    {
+        basic_iterator iter = *this;
+        iter -= n;
+        return iter;
+    }
+
+    difference_type operator-(const basic_iterator& other) const
+    {
+        assert(container_ != nullptr);
+        assert(container_ == other.container_);
+
+        return position_ - other.position_;
+    }
+
+    reference operator[](difference_type n) const
+    {
+        return *(*this + n);
+    }
 
     friend bool operator==(const basic_iterator& left, const basic_iterator& right) 
     {
@@ -69,7 +138,7 @@ public:
 
     friend bool operator<(const basic_iterator& left, const basic_iterator& right)
     {
-        assert(left.container_ == right.container_);
+        assert(left.container_ == right.container_); // не разрешаю сравнивать итераторы из двух разных контейнеров 
         return left.position_ < right.position_;
     }
 
@@ -101,10 +170,29 @@ private:
 
     difference_type position_ = 0;
 
-    basic_iterator(real_container_type* container, difference_type index) : container_(container), position_(index) {};
+    basic_iterator(real_container_type* container, difference_type index) : container_(container), position_(index) {}
+
+    size_type real_index(size_type pos) const
+    {
+        assert(pos < container_->size()); // балуюсь ассертами, надо спросить насколько это хорошо? я вот просто не хочу пользователю разрешать такие действия 
+
+        size_type real_index_k;
+        if constexpr (IsReverse)
+        {
+            real_index_k = container_->size() - pos - 1;
+        }
+        else 
+        {
+            real_index_k = pos;
+        }
+
+        return (container_->head_ + real_index_k) % container_->capacity();
+    }
 
     friend class circular_buffer<T, Extendable, Allocator>;
 
     template<bool, bool>
     friend class basic_iterator;
 };
+
+// еще касты по хорошему добавить. 
