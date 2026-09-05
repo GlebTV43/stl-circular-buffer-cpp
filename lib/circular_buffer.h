@@ -5,6 +5,7 @@
 #include <initializer_list>
 #include <cassert>
 #include <stdexcept>
+#include <utility>
 
 template<typename T, bool Extendable = false, typename Allocator = std::allocator<T>>
 class circular_buffer {
@@ -38,14 +39,40 @@ public:
         }
     }
 
-    ~circular_buffer()
-    {
-        clear();
+    // rof 
 
-        if (capacity_ != 0)
+    circular_buffer(const circular_buffer& other) : allocator_(allocator_traits::select_on_copy_construction(other.allocator_)), 
+        capacity_(other.capacity_)
+    {
+        if (capacity_ == 0) return ;
+
+        data_ = allocator_traits::allocate(allocator_, capacity_);
+
+        try
         {
-            allocator_traits::deallocate(allocator_, data_, capacity_);
+            for (; size_ < capacity_; ++size_)
+            {
+                allocator_traits::construct(allocator_, std::addressof(data[size_]), other[size_]);
+            }
         }
+        catch(...)
+        {
+            clear();
+
+            allocator_traits::deallocate(allocator_, data_, capacity_);
+
+            throw; // пробрасываю дальше 
+        }
+    }
+
+    circular_buffer(circular_buffer&& other) noexcept : allocator_(std::move(other.allocator_))
+    {
+        take_memory(other);
+    }
+
+    ~circular_buffer() noexcept
+    {
+        clear_memory();
     }
 
 private:
@@ -61,6 +88,31 @@ private:
     {
         assert(capacity_ != 0);
         return (head_ + logical_index) % capacity_;
+    }
+
+    void clear_memory() noexcept
+    {
+        clear();
+
+        if (capacity_ != 0)
+        {
+            allocator_traits::deallocate(
+                allocator_,
+                data_,
+                capacity_
+            );
+        }
+
+        data_ = pointer{};
+        capacity_ = 0;
+    }
+
+    void take_memory(circular_buffer& other) noexcept
+    {
+        data_ = std::exchange(other.data_, pointer{});
+        size_ = std::exchange(other.size_, 0);
+        capacity_ = std::exchange(other.capacity_, 0);
+        head_ = std::exchange(other.head_, 0);
     }
 
 public:
