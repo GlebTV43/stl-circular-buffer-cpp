@@ -51,6 +51,77 @@ public:
     using reverse_iterator = basic_iterator<false, true>;
 
     using const_reverse_iterator = basic_iterator<true, true>;
+
+    size_type size() const
+    {
+        return size_;
+    }
+
+    size_type capacity() const 
+    {
+        return capacity_;
+    }
+
+    iterator begin()
+    {
+        return iterator(this, 0);
+    }
+
+    iterator end()
+    {
+        return iterator(this, size_);
+    }
+
+    const_iterator begin() const
+    {
+        return const_iterator(this, 0);
+    }
+
+    const_iterator end() const
+    {
+        return const_iterator(this, size_);
+    }
+
+    const_iterator cbegin() const
+    {
+        return const_iterator(this, 0);
+    }
+
+    const_iterator cend() const
+    {
+        return const_iterator(this, size_);
+    }
+    
+    reverse_iterator rbegin()
+    {
+        return reverse_iterator(this, 0);
+    }
+
+    reverse_iterator rend()
+    {
+        return reverse_iterator(this, size_);
+    }
+
+    const_reverse_iterator rbegin() const
+    {
+        return const_reverse_iterator(this, 0);
+    }
+
+    const_reverse_iterator rend() const
+    {
+        return const_reverse_iterator(this, size_);
+    }
+
+    const_reverse_iterator crbegin() const
+    {
+        return const_reverse_iterator(this, 0);
+    }
+
+    const_reverse_iterator crend() const
+    {
+        return const_reverse_iterator(this, size_);
+    }
+
 };
 
 #include "iterators.h"

@@ -25,6 +25,10 @@ public:
 
     basic_iterator() = default; // тк есть другой закрытый конструктор =6 
 
+    template<bool OtherConst>
+    requires (IsConst && !OtherConst)
+    basic_iterator(const basic_iterator<OtherConst, IsReverse>& other) : container_(other.container_), position_(other.position_) {}
+
     reference operator*() const
     {
         assert(container_ != nullptr);
@@ -118,7 +122,8 @@ public:
         return iter;
     }
 
-    difference_type operator-(const basic_iterator& other) const
+    template<bool OtherConst>
+    difference_type operator-(const basic_iterator<OtherConst, IsReverse>& other) const
     {
         assert(container_ != nullptr);
         assert(container_ == other.container_);
