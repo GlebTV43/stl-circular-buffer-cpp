@@ -3,6 +3,8 @@
 #include <memory>
 #include <cstddef>
 #include <initializer_list>
+#include <cassert>
+#include <stdexcept>
 
 template<typename T, bool Extendable = false, typename Allocator = std::allocator<T>>
 class circular_buffer {
@@ -24,11 +26,27 @@ public:
 
     circular_buffer() = default;
 
-    explicit circular_buffer(size_type capacity);
+    explicit circular_buffer(size_type capacity) : circular_buffer(capacity, allocator_type{}) {}
 
-    explicit circular_buffer(const allocator_type& allocator);
+    explicit circular_buffer(const allocator_type& allocator) : circular_buffer(0, allocator) {}
 
-    circular_buffer(size_type capacity, const allocator_type& allocator);
+    circular_buffer(size_type capacity, const allocator_type& allocator) : allocator_(allocator), capacity_(capacity)
+    {
+        if (capacity != 0)
+        {
+            data_ = allocator_traits::allocate(allocator_, capacity_);
+        }
+    }
+
+    ~circular_buffer()
+    {
+        clear();
+
+        if (capacity_ != 0)
+        {
+            allocator_traits::deallocate(allocator_, data_, capacity_);
+        }
+    }
 
 private:
 
@@ -38,6 +56,12 @@ private:
     size_type size_ = 0;
     size_type capacity_ = 0;
     size_type head_ = 0;
+
+    size_type real_index(size_type logical_index) const noexcept
+    {
+        assert(capacity_ != 0);
+        return (head_ + logical_index) % capacity_;
+    }
 
 public:
 
@@ -122,6 +146,80 @@ public:
         return const_reverse_iterator(this, size_);
     }
 
+    bool empty() const
+    {
+        return (size_ == 0);
+    }
+
+    reference operator[](size_type n)
+    {
+        return data_[real_index(n)];
+    }
+
+    reference at(size_type n)
+    {
+        if (n >= size_)
+        {
+            throw std::out_of_range("circular_buffer::at");
+        }
+
+        return (*this)[n];
+    }
+
+    const_reference operator[](size_type n) const
+    {
+        return data_[real_index(n)];
+    }
+
+    const_reference at(size_type n) const
+    {
+        if (n >= size_)
+        {
+            throw std::out_of_range("circular_buffer::at(const)");
+        }
+
+        return (*this)[n];
+    }    
+
+    allocator_type get_allocator() const
+    {
+        return allocator_;
+    }
+
+    reference front()
+    {
+        assert(!empty());
+        return (*this)[0];
+    }
+
+    reference back()
+    {
+        assert(!empty());
+        return (*this)[size_ - 1];
+    }
+
+    const_reference front() const
+    {
+        assert(!empty());
+        return (*this)[0];
+    }
+
+    const_reference back() const
+    {
+        assert(!empty());
+        return (*this)[size_ - 1];
+    }
+
+    void clear()
+    {
+        for (size_type n = 0; n < size_; ++n)
+        {
+            allocator_traits::destroy(allocator_, std::addressof(data_[real_index(n)]));
+        }
+
+        head_ = 0;
+        size_ = 0;
+    }
 };
 
 #include "iterators.h"
