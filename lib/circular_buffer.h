@@ -41,7 +41,7 @@ public:
 
     // rof 
 
-    circular_buffer(const circular_buffer& other) : allocator_(allocator_traits::select_on_copy_construction(other.allocator_)), 
+    circular_buffer(const circular_buffer& other) : allocator_(allocator_traits::select_on_container_copy_construction(other.allocator_)), 
         capacity_(other.capacity_)
     {
         if (capacity_ == 0) return ;
@@ -50,9 +50,9 @@ public:
 
         try
         {
-            for (; size_ < capacity_; ++size_)
+            for (; size_ < other.size_; ++size_)
             {
-                allocator_traits::construct(allocator_, std::addressof(data[size_]), other[size_]);
+                allocator_traits::construct(allocator_, std::addressof(data_[size_]), other[size_]);
             }
         }
         catch(...)
@@ -68,6 +68,39 @@ public:
     circular_buffer(circular_buffer&& other) noexcept : allocator_(std::move(other.allocator_))
     {
         take_memory(other);
+    }
+
+    circular_buffer& operator=(const circular_buffer& other) : 
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        allocator_type new_alloc = allocator_;
+
+        if constexpr (allocator_traits::propagate_on_container_copy_assignment::value)
+        {
+            new_alloc = other.allocator_;
+        }
+
+        circular_buffer tmp(other.capacity_, new_alloc);
+
+        for (;tmp.size_ < other.capacity_; ++tmp.size_)
+        {
+            allocator_traits::construct(new_alloc, std::addressof(tmp.data_[tmp.size_]));
+        }
+
+        clear_memory();
+
+        if constexpr (allocator_traits::propagate_on_container_copy_assignment::value)
+        {
+            allocator_ = other.allocator_;
+        }
+
+        take_memory(tmp);
+
+        return *this;
     }
 
     ~circular_buffer() noexcept
@@ -96,11 +129,7 @@ private:
 
         if (capacity_ != 0)
         {
-            allocator_traits::deallocate(
-                allocator_,
-                data_,
-                capacity_
-            );
+            allocator_traits::deallocate(allocator_, data_, capacity_);
         }
 
         data_ = pointer{};
