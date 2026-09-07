@@ -70,7 +70,7 @@ public:
         take_memory(other);
     }
 
-    circular_buffer& operator=(const circular_buffer& other) : 
+    circular_buffer& operator=(const circular_buffer& other) 
     {
         if (this == &other)
         {
@@ -86,9 +86,9 @@ public:
 
         circular_buffer tmp(other.capacity_, new_alloc);
 
-        for (;tmp.size_ < other.capacity_; ++tmp.size_)
+        for (;tmp.size_ < other.size_; ++tmp.size_)
         {
-            allocator_traits::construct(new_alloc, std::addressof(tmp.data_[tmp.size_]));
+            allocator_traits::construct(new_alloc, std::addressof(tmp.data_[tmp.size_]), other[tmp.size_]);
         }
 
         clear_memory();
@@ -99,6 +99,39 @@ public:
         }
 
         take_memory(tmp);
+
+        return *this;
+    }
+
+    circular_buffer& operator=(circular_buffer&& other)
+    {
+        if (this == &other)
+        {
+            return *this;
+        }
+
+        if constexpr (allocator_traits::propagate_on_container_move_assignment::value)
+        {
+            clear_memory();
+            allocator_ = std::move(other.allocator_);
+            take_memory(other);
+        } else if (allocator_ == other.allocator_)
+        {
+            clear_memory();
+            take_memory(other);
+        } else 
+        {
+            circular_buffer tmp(other.capacity_, allocator_);
+
+            for (; tmp.size_ < other.size_; ++tmp.size_)
+            {
+                allocator_traits::construct(allocator_, std::addressof(tmp.data_[tmp.size_]), std::move(other[tmp.size_]));
+            }
+
+            clear_memory();
+            take_memory(tmp);
+            other.clear();
+        }
 
         return *this;
     }
