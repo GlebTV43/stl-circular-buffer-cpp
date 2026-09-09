@@ -6,6 +6,7 @@
 #include <cassert>
 #include <stdexcept>
 #include <utility>
+#include <iterator>
 
 template<typename T, bool Extendable = false, typename Allocator = std::allocator<T>>
 class circular_buffer {
@@ -141,7 +142,7 @@ public:
         clear_memory();
     }
 
-    // special ctor
+    // special ctors
 
     circular_buffer(size_type times, const value_type& value) : circular_buffer(times)
     {
@@ -157,6 +158,12 @@ public:
         {
             push_back(value);
         }
+    }
+
+    circular_buffer& operator=(std::initializer_list<value_type> list)
+    {
+        assign(list);
+        return *this;
     }
 
 private:
@@ -404,6 +411,8 @@ public:
         return !(*this == other);
     }
 
+    // push & pop
+
     void push_back(const value_type& value)
     {
         if (size_ == capacity_)
@@ -498,6 +507,40 @@ public:
         allocator_traits::destroy(allocator_, std::addressof(data_[head_]));
         --size_;
         head_ = (head_ +1) % capacity_;
+    }
+
+    // assigns
+
+    void assign(size_type times, const value_type& value)
+    {
+        circular_buffer tmp(capacity_, allocator_);
+
+        for (size_type ind = 0; ind < times; ++ind)
+        {
+            tmp.push_back(value);
+        }
+
+        clear_memory();
+        take_memory(tmp);
+    }
+
+    template<std::input_iterator InputIterator>
+    void assign(InputIterator first, InputIterator last)
+    {
+        circular_buffer tmp(capacity_, allocator_);
+
+        for (; first != last; ++first)
+        {
+            tmp.push_back(*first);
+        }
+
+        clear_memory();
+        take_memory(tmp);
+    }
+
+    void assign(std::initializer_list<value_type> list)
+    {
+        assign(list.begin(), list.end());
     }
 
 
