@@ -141,6 +141,24 @@ public:
         clear_memory();
     }
 
+    // special ctor
+
+    circular_buffer(size_type times, const value_type& value) : circular_buffer(times)
+    {
+        for (size_type t = 0; t < times; ++t)
+        {
+            push_back(value);
+        }
+    }
+
+    circular_buffer(std::initializer_list<value_type> values) : circular_buffer(values.size())
+    {
+        for (const value_type& value : values)
+        {
+            push_back(value);
+        }
+    }
+
 private:
 
     allocator_type allocator_;
@@ -363,6 +381,29 @@ public:
         size_ = 0;
     }
 
+    bool operator==(const circular_buffer& other) const
+    {
+        if (size_ != other.size_)
+        {
+            return false;
+        }
+
+        for (size_type ind = 0; ind < size_; ++ind)
+        {
+            if ((*this)[ind] != other[ind])
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool operator!=(const circular_buffer& other) const
+    {
+        return !(*this == other);
+    }
+
     void push_back(const value_type& value)
     {
         if (size_ == capacity_)
@@ -458,6 +499,8 @@ public:
         --size_;
         head_ = (head_ +1) % capacity_;
     }
+
+
 };
 
 #include "iterators.h"
