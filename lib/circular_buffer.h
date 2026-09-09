@@ -543,6 +543,8 @@ public:
         assign(list.begin(), list.end());
     }
 
+    // resize
+
     void resize(size_type new_size, const value_type& value)
     {
         if constexpr (!Extendable)
@@ -553,6 +555,8 @@ public:
             }
         }
 
+        const value_type save = value;
+
         while (new_size < size_)
         {
             pop_back();
@@ -560,7 +564,7 @@ public:
 
         while (new_size > size_)
         {
-            push_back(value);
+            push_back(save);
         }
     }
 
@@ -572,6 +576,8 @@ public:
             {
                 pop_back();
             }
+
+            return;
         }
 
         if constexpr (std::is_default_constructible_v<value_type>)
@@ -582,6 +588,126 @@ public:
             throw std::logic_error("value_type is`t default constructible");
         } 
     }
+
+    // erase
+
+    iterator erase(const_iterator iter)
+    {
+        if (iter.container_ != this || iter.position_ < 0 || iter.position_ >= size_)
+        {
+            throw std::out_of_range("wrong erase position");
+        }
+
+        for (size_type ind = iter.position_; ind < size_ - 1; ++ind)
+        {
+            (*this)[ind] = std::move((*this)[ind + 1]);
+        }
+
+        pop_back();
+
+        return iterator(this, iter.position_);
+    }
+
+    iterator erase(const_iterator first_iter, const_iterator last_iter)
+    {
+        if (first_iter.container_ != this || last_iter.container_ != this || first_iter.position_ > last_iter.position_
+            || first_iter.position_ < 0 || last_iter.position_ > size_)
+        {
+            throw std::out_of_range("wrong erase range");
+        }
+
+        const size_type count = static_cast<size_type>(last_iter - first_iter);
+
+        for (size_type ind = first_iter.position_; ind < size_ - count; ++ind)
+        {
+            (*this)[ind] = std::move((*this)[ind + count]);
+        }
+
+        for (size_type ind = 0; ind < count; ++ind)
+        {
+            pop_back();
+        }
+
+        return iterator(this, first_iter.position_);
+    }
+
+    iterator insert(const_iterator iter, const value_type& value)
+    {
+        if (iter.container_ != this || iter.position_ < 0 || iter.position_ > size_)
+        {
+            throw std::out_of_range("wrong insert position");
+        }
+
+        value_type save = value;
+
+        if (size_ == capacity_)
+        {
+            if constexpr (!Extendable)
+            {
+                throw std::length_error("buffer if full ");
+            } else 
+            {
+                double_memory();
+            }
+        }
+
+        if (size_ == iter.position_)
+        {
+            push_back(std::move(save));
+            return iterator(this, iter.position_);
+        }
+
+        push_back(std::move(back()));
+
+        for (size_type ind = size_ - 2; ind > iter.position_; --ind)
+        {
+            (*this)[ind] = std::move((*this)[ind - 1]);
+        }
+
+        (*this)[iter.position_] = std::move(save);
+
+        return iterator(this, iter.position_);
+    }
+
+    iterator insert(const_iterator iter, value_type&& value)
+    {
+        if (iter.container_ != this || iter.position_ < 0 || iter.position_ > size_)
+        {
+            throw std::out_of_range("wrong insert position");
+        }
+
+        value_type save = value;
+
+        if (size_ == capacity_)
+        {
+            if constexpr (!Extendable)
+            {
+                throw std::length_error("buffer if full ");
+            } else 
+            {
+                double_memory();
+            }
+        }
+
+        if (size_ == iter.position_)
+        {
+            push_back(std::move(save));
+            return iterator(this, iter.position_);
+        }
+
+        push_back(std::move(back()));
+
+        for (size_type ind = size_ - 2; ind > iter.position_; --ind)
+        {
+            (*this)[ind] = std::move((*this)[ind - 1]);
+        }
+
+        (*this)[iter.position_] = std::move(save);
+
+        return iterator(this, iter.position_);
+    }
+
+    
 };
 
 #include "iterators.h"
