@@ -223,6 +223,11 @@ public:
         return capacity_;
     }
 
+    size_type max_size() const
+    {
+        return allocator_traits::max_size(allocator_);
+    }
+
     iterator begin()
     {
         return iterator(this, 0);
@@ -370,7 +375,7 @@ public:
                 throw std::length_error("can`t extand buffer");
             }
         }
-        allocator_traits::construct(allocator_, std::addressof(data[real_index(size_)]), value);
+        allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), value);
         ++size_;
     }
 
@@ -386,7 +391,7 @@ public:
                 throw std::length_error("can`t extand buffer");
             }
         }
-        allocator_traits::construct(allocator_, std::addressof(data[real_index(size_)]), std::move(value));
+        allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), std::move(value));
         ++size_;
     }
 
@@ -416,7 +421,7 @@ public:
 
         const size_type new_head = (head_ + capacity_ - 1) % capacity_;
 
-        allocator_traits::construct(allocator_, std::addressof(data[new_head]), value);
+        allocator_traits::construct(allocator_, std::addressof(data_[new_head]), value);
         ++size_;
 
         head_ = new_head;
@@ -436,7 +441,7 @@ public:
         }
         const size_type new_head = (head_ + capacity_ - 1) % capacity_;
 
-        allocator_traits::construct(allocator_, std::addressof(data[new_head]), std::move(value));
+        allocator_traits::construct(allocator_, std::addressof(data_[new_head]), std::move(value));
         ++size_;
 
         head_ = new_head;
