@@ -543,7 +543,45 @@ public:
         assign(list.begin(), list.end());
     }
 
+    void resize(size_type new_size, const value_type& value)
+    {
+        if constexpr (!Extendable)
+        {
+            if (new_size > capacity_)
+            {
+                throw std::length_error("new_size more than capacity");
+            }
+        }
 
+        while (new_size < size_)
+        {
+            pop_back();
+        }
+
+        while (new_size > size_)
+        {
+            push_back(value);
+        }
+    }
+
+    void resize(size_type new_size)
+    {
+        if (new_size <= size_)
+        {
+            while (new_size < size_)
+            {
+                pop_back();
+            }
+        }
+
+        if constexpr (std::is_default_constructible_v<value_type>)
+        {
+            resize(new_size, value_type{});
+        } else
+        {
+            throw std::logic_error("value_type is`t default constructible");
+        } 
+    }
 };
 
 #include "iterators.h"
