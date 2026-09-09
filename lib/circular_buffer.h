@@ -707,7 +707,87 @@ public:
         return iterator(this, iter.position_);
     }
 
-    
+    iterator insert(const_iterator iter, size_type cnt, const value_type& value)
+    {
+        if (iter.container_ != this || iter.position_ < 0 || iter.position_ > size_)
+        {
+            throw std::out_of_range("wrong insert position");
+        }
+
+        if (cnt == 0) return iterator(this, iter.position_);
+
+        const size_type new_size = size_ + cnt;
+
+        if constexpr (!Extendable)
+        {   
+            if (new_size > capacity_)
+            {
+                throw std::length_error("buffer is full");
+            }
+        }
+
+        const value_type save = value;
+
+        circular_buffer tmp(allocator_, capacity_);
+
+        for (size_type ind = 0; ind < iter.position_; ++ind)
+        {
+            tmp.push_back((*this)[ind]);
+        }
+
+        for (size_type ind = 0; ind < cnt; ++ind)
+        {
+            tmp.push_back(save);
+        }
+
+        for (size_type ind = iter.position_; ind < size_; ++ind)
+        {
+            tmp.push_back((*this)[ind]);
+        }
+
+        clear_memory();
+        take_memory(tmp);
+
+        return iterator(this, iter.position_)
+    }
+
+    template<std::input_iterator InputIterator>
+    iterator insert(const_iterator iter, InputIterator first, InputIterator last)
+    {
+        if (iter.container_ != this || iter.position_ < 0 || iter.position_ > size_)
+        {
+            throw std::out_of_range("wrong insert position");
+        }
+
+        if (first == last) return iterator(this, iter.position_);
+
+        circular_buffer tmp(allocator_, capacity_);
+
+        for (size_type ind = 0; ind < iter.position_; ++ind)
+        {
+            tmp.push_back((*this)[ind]);
+        }
+
+        for (; first < last; ++first)
+        {
+            tmp.push_back(*first);
+        }
+
+        for (size_type ind = iter.position_; ind < size_; ++ind)
+        {
+            tmp.push_back((*this)[ind]);
+        }
+
+        clear_memory();
+        take_memory(tmp);
+
+        return iterator(this, iter.position_)
+    }
+
+    iterator insert(const_iterator iter, std::initializer_list<value_type> list)
+    {
+        return insert(iter, list.begin(), list.end());
+    }
 };
 
 #include "iterators.h"
