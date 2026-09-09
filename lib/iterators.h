@@ -1,7 +1,5 @@
 #pragma once
 
-#include "circular_buffer.h" // pragma once остановит тк я подключаю его в самом конце. чисто чтобы эту бесячую красную полоску убрать 
-
 #include <cassert>
 #include <iterator>
 #include <memory>

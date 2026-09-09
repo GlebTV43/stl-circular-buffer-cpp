@@ -177,6 +177,29 @@ private:
         head_ = std::exchange(other.head_, 0);
     }
 
+    void double_memory()
+    {
+        if (capacity_ == 0)
+        {
+            const size_type start_value = 4;
+            data_ = allocator_traits::allocate(allocator_, start_value);
+            capacity_ = start_value;
+            return;
+        }
+
+        const size_type new_capacity = capacity_ * 2;
+
+        circular_buffer tmp(new_capacity, allocator_);
+
+        for (; tmp.size_ < size_; ++tmp.size_)
+        {
+            allocator_traits::construct(tmp.allocator_, std::addressof(tmp.data_[tmp.size_]), (*this)[tmp.size_]);
+        }
+
+        clear_memory();
+        take_memory(tmp);
+    }
+
 public:
 
     template<bool IsConst, bool IsReverse>
@@ -333,6 +356,102 @@ public:
 
         head_ = 0;
         size_ = 0;
+    }
+
+    void push_back(const value_type& value)
+    {
+        if (size_ == capacity_)
+        {
+            if constexpr (Extendable)
+            {
+                double_memory();
+            } else 
+            {
+                throw std::length_error("can`t extand buffer");
+            }
+        }
+        allocator_traits::construct(allocator_, std::addressof(data[real_index(size_)]), value);
+        ++size_;
+    }
+
+    void push_back(value_type&& value)
+    {
+        if (size_ == capacity_)
+        {
+            if constexpr (Extendable)
+            {
+                double_memory();
+            } else 
+            {
+                throw std::length_error("can`t extand buffer");
+            }
+        }
+        allocator_traits::construct(allocator_, std::addressof(data[real_index(size_)]), std::move(value));
+        ++size_;
+    }
+
+    void pop_back()
+    {
+        if (size_ == 0)
+        {
+            throw std::logic_error("can`t pop nothing");
+        }
+
+        allocator_traits::destroy(allocator_, std::addressof(data_[real_index(size_ - 1)]));
+        --size_;
+    }
+
+    void push_front(const value_type& value)
+    {
+        if (size_ == capacity_)
+        {
+            if constexpr (Extendable)
+            {
+                double_memory();
+            } else 
+            {
+                throw std::length_error("can`t extand buffer");
+            }
+        }
+
+        const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+        allocator_traits::construct(allocator_, std::addressof(data[new_head]), value);
+        ++size_;
+
+        head_ = new_head;
+    }
+
+    void push_front(value_type&& value)
+    {
+        if (size_ == capacity_)
+        {
+            if constexpr (Extendable)
+            {
+                double_memory();
+            } else 
+            {
+                throw std::length_error("can`t extand buffer");
+            }
+        }
+        const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+        allocator_traits::construct(allocator_, std::addressof(data[new_head]), std::move(value));
+        ++size_;
+
+        head_ = new_head;
+    }
+
+    void pop_front()
+    {
+        if (size_ == 0)
+        {
+            throw std::logic_error("can`t pop nothing");
+        }
+
+        allocator_traits::destroy(allocator_, std::addressof(data_[head_]));
+        --size_;
+        head_ = (head_ +1) % capacity_;
     }
 };
 
