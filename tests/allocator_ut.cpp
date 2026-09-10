@@ -4,6 +4,7 @@
 #include <gmock/gmock.h>
 
 #include <cstdlib>
+#include <memory>
 
 class NodeTag {};
 
@@ -56,11 +57,11 @@ public:
             ++TestAllocator<NodeTag>::AllocationCount;
             TestAllocator<NodeTag>::ElementsAllocated += sz;
         }
-        return static_cast<pointer>(std::aligned_alloc(alignof(T), sizeof(T) * sz));
+        return std::allocator<T>{}.allocate(sz);
     }
 
-    void deallocate(pointer p, std::size_t) {
-        std::free(p);
+    void deallocate(pointer p, size_type sz) noexcept {
+        std::allocator<T>{}.deallocate(p, sz);
     }
 
     bool operator==(const TestAllocator& other) const {
@@ -144,6 +145,6 @@ TEST_F(WorkWithAllocatorTest, extendedPushBack) {
     ASSERT_EQ(TestAllocator<SomeObj>::ElementsAllocated, 15);
 
     ASSERT_EQ(SomeObj::ConstructorCalled, 6);
-    ASSERT_EQ(SomeObj::DestructorCalled, 6);
+    ASSERT_EQ(SomeObj::DestructorCalled, 11);
 }
 #endif

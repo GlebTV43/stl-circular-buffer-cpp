@@ -255,6 +255,41 @@ private:
         take_memory(tmp);
     }
 
+    void reallocate(size_type new_capacity) {
+    pointer new_data = allocator_traits::allocate(allocator_, new_capacity);
+
+    size_type constructed = 0;
+
+    try {
+        for (; constructed < size_; ++constructed) {
+            allocator_traits::construct(allocator_, new_data + constructed, std::move_if_noexcept((*this)[constructed]));
+        }
+    } catch (...) {
+        for (size_type i = 0; i < constructed; ++i) 
+        {
+            allocator_traits::destroy(allocator_, new_data + i);
+        }
+
+        allocator_traits::deallocate(allocator_, new_data, new_capacity);
+
+        throw;
+    }
+
+    for (size_type i = 0; i < size_; ++i) 
+    {
+        allocator_traits::destroy(allocator_, data_ + real_index(i));
+    }
+
+    if (data_ != nullptr) 
+    {
+        allocator_traits::deallocate(allocator_, data_, capacity_);
+    }
+
+    data_ = new_data;
+    capacity_ = new_capacity;
+    head_ = 0;
+}
+
 public:
 
     template<bool IsConst, bool IsReverse>
@@ -817,6 +852,56 @@ public:
     iterator insert(const_iterator iter, std::initializer_list<value_type> list)
     {
         return insert(iter, list.begin(), list.end());
+    }
+
+    void reverse() 
+    {
+        using std::swap;
+
+        for (size_type i = 0; i < size_ / 2; ++i) 
+        {
+            swap((*this)[i], (*this)[size_ - i - 1]);
+        }
+    }
+
+    void reserve(size_type new_capacity) {
+        if (new_capacity <= capacity_) 
+        {
+            return;
+        }
+
+        if constexpr (!Extendable) 
+        {
+            throw std::length_error("can`t reserve memory for non-extendable circular_buffer");
+        } else 
+        {
+            if (new_capacity > max_size()) 
+            {
+                throw std::length_error("circular_buffer::reserve");
+            }
+
+            reallocate(new_capacity);
+        }
+    }
+
+    void swap(circular_buffer& other) noexcept 
+    {
+        using std::swap;
+
+        swap(data_, other.data_);
+        swap(capacity_, other.capacity_);
+        swap(size_, other.size_);
+        swap(head_, other.head_);
+        
+        if constexpr (allocator_traits::propagate_on_container_swap::value) 
+        {
+            swap(allocator_, other.allocator_);
+        }
+    }
+
+    friend void swap(circular_buffer& left, circular_buffer& right) noexcept 
+    {
+        left.swap(right);
     }
 };
 
