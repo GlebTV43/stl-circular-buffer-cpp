@@ -12,6 +12,8 @@ public:
     using container_type = circular_buffer<T, Extendable, Allocator>;
 
     using iterator_category = std::random_access_iterator_tag;
+    
+    using iterator_concept = std::random_access_iterator_tag;
 
     using value_type = T;
 
@@ -20,6 +22,8 @@ public:
     using reference = std::conditional_t<IsConst, const value_type&, value_type&>;
 
     using pointer = std::conditional_t<IsConst, const value_type*, value_type*>;
+
+    using size_type = typename container_type::size_type;
 
     basic_iterator() = default; // тк есть другой закрытый конструктор =6 
 

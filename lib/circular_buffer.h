@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <utility>
 #include <iterator>
+#include <type_traits>
 
 template<typename T, bool Extendable = false, typename Allocator = std::allocator<T>>
 class circular_buffer {
@@ -18,8 +19,8 @@ public:
     using allocator_type = Allocator;
     using allocator_traits = std::allocator_traits<allocator_type>;
 
-    using pointer = allocator_traits::pointer;
-    using const_pointer = allocator_traits::const_pointer;
+    using pointer = typename allocator_traits::pointer;
+    using const_pointer = typename allocator_traits::const_pointer;
 
     using difference_type = typename allocator_traits::difference_type;
     using size_type = typename allocator_traits::size_type;
@@ -158,6 +159,35 @@ public:
         {
             push_back(value);
         }
+    }
+
+    circular_buffer(circular_buffer&& other, const allocator_type& allocator) : allocator_(allocator)
+    {
+        if (allocator_ == other.allocator_)
+        {
+            take_memory(other);
+            return;
+        }
+
+        if (other.capacity_ == 0) return;
+
+        capacity_ = other.capacity_;
+        data_ = allocator_traits::allocate(allocator_, capacity_);
+
+        try
+        {
+            for (; size_ < other.size_; ++size_)
+            {
+                allocator_traits::construct(allocator_, std::addressof(data_[size_]), std::move_if_noexcept(other[size_]));
+            }
+        }
+        catch(...)
+        {
+            clear_memory();
+            throw;
+        }
+        
+        other.clear();
     }
 
     circular_buffer& operator=(std::initializer_list<value_type> list)
@@ -728,7 +758,7 @@ public:
 
         const value_type save = value;
 
-        circular_buffer tmp(allocator_, capacity_);
+        circular_buffer tmp(capacity_, allocator_);
 
         for (size_type ind = 0; ind < iter.position_; ++ind)
         {
@@ -748,7 +778,7 @@ public:
         clear_memory();
         take_memory(tmp);
 
-        return iterator(this, iter.position_)
+        return iterator(this, iter.position_);
     }
 
     template<std::input_iterator InputIterator>
@@ -761,14 +791,14 @@ public:
 
         if (first == last) return iterator(this, iter.position_);
 
-        circular_buffer tmp(allocator_, capacity_);
+        circular_buffer tmp(capacity_, allocator_);
 
         for (size_type ind = 0; ind < iter.position_; ++ind)
         {
             tmp.push_back((*this)[ind]);
         }
 
-        for (; first < last; ++first)
+        for (; first != last; ++first)
         {
             tmp.push_back(*first);
         }
@@ -781,7 +811,7 @@ public:
         clear_memory();
         take_memory(tmp);
 
-        return iterator(this, iter.position_)
+        return iterator(this, iter.position_);
     }
 
     iterator insert(const_iterator iter, std::initializer_list<value_type> list)
