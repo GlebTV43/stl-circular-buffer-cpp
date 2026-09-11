@@ -248,7 +248,7 @@ private:
 
         for (; tmp.size_ < size_; ++tmp.size_)
         {
-            allocator_traits::construct(tmp.allocator_, std::addressof(tmp.data_[tmp.size_]), (*this)[tmp.size_]);
+            allocator_traits::construct(tmp.allocator_, std::addressof(tmp.data_[tmp.size_]), std::move_if_noexcept((*this)[tmp.size_]));
         }
 
         clear_memory();
@@ -648,6 +648,19 @@ public:
 
     void assign(size_type times, const value_type& value)
     {
+        if (times > max_size())
+        {
+            throw std::length_error("new size exceeds max_size");
+        }
+
+        if constexpr (!Extendable)
+        {
+            if (times > capacity_)
+            {
+                throw std::length_error("buffer is full");
+            }
+        }
+
         circular_buffer tmp(capacity_, allocator_);
 
         for (size_type ind = 0; ind < times; ++ind)
@@ -666,6 +679,19 @@ public:
 
         for (; first != last; ++first)
         {
+            if constexpr (!Extendable)
+            {
+                if (tmp.size_ == tmp.capacity_)
+                {
+                    throw std::length_error("buffer is full");
+                }
+            }
+
+            if (tmp.size_ == tmp.max_size())
+            {
+                throw std::length_error("new size exceeds max_size");
+            }
+
             tmp.push_back(*first);
         }
 
@@ -690,12 +716,16 @@ public:
             }
         }
 
-        const value_type save = value;
-
-        while (new_size < size_)
+        if (new_size <= size_)
         {
-            pop_back();
+            while (new_size < size_)
+            {
+                pop_back();
+            }
+            return;
         }
+
+        const value_type save = value;
 
         while (new_size > size_)
         {
@@ -705,23 +735,43 @@ public:
 
     void resize(size_type new_size)
     {
+        if constexpr (!Extendable)
+        {
+            if (new_size > capacity_)
+            {
+                throw std::length_error("new_size more than capacity");
+            }
+        }
+
         if (new_size <= size_)
         {
             while (new_size < size_)
             {
                 pop_back();
             }
-
             return;
         }
 
         if constexpr (std::is_default_constructible_v<value_type>)
         {
-            resize(new_size, value_type{});
-        } else
+            while (new_size > size_)
+            {
+                if constexpr (Extendable)
+                {
+                    if (size_ == capacity_)
+                    {
+                        double_memory();
+                    }
+                }
+
+                allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]));
+                ++size_;
+            }
+        }
+        else
         {
-            throw std::logic_error("value_type is`t default constructible");
-        } 
+            throw std::logic_error("value_type is not default constructible");
+        }
     }
 
     // erase
@@ -753,6 +803,8 @@ public:
 
         const size_type count = static_cast<size_type>(last_iter - first_iter);
 
+        if (count == 0) return iterator(this, first_iter.position_);
+
         for (size_type ind = first_iter.position_; ind < size_ - count; ++ind)
         {
             (*this)[ind] = std::move((*this)[ind + count]);
@@ -773,17 +825,16 @@ public:
             throw std::out_of_range("wrong insert position");
         }
 
+        if constexpr (!Extendable) 
+        {
+            if (size_ == capacity_) throw std::length_error("buffer if full ");
+        }
+
         value_type save = value;
 
         if (size_ == capacity_)
-        {
-            if constexpr (!Extendable)
-            {
-                throw std::length_error("buffer if full ");
-            } else 
-            {
-                double_memory();
-            }
+        {            
+            double_memory();
         }
 
         if (size_ == iter.position_)
@@ -811,17 +862,16 @@ public:
             throw std::out_of_range("wrong insert position");
         }
 
-        value_type save = value;
+        if constexpr (!Extendable) 
+        {
+            if (size_ == capacity_) throw std::length_error("buffer if full ");
+        }
+
+        value_type save = std::move(value);
 
         if (size_ == capacity_)
         {
-            if constexpr (!Extendable)
-            {
-                throw std::length_error("buffer if full ");
-            } else 
-            {
-                double_memory();
-            }
+            double_memory();
         }
 
         if (size_ == iter.position_)
