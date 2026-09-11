@@ -420,25 +420,25 @@ public:
 
     reference front()
     {
-        assert(!empty());
+        if (empty()) throw std::out_of_range("buffer has no obj");
         return (*this)[0];
     }
 
     reference back()
     {
-        assert(!empty());
+        if (empty()) throw std::out_of_range("buffer has no obj");
         return (*this)[size_ - 1];
     }
 
     const_reference front() const
     {
-        assert(!empty());
+        if (empty()) throw std::out_of_range("buffer has no obj");
         return (*this)[0];
     }
 
     const_reference back() const
     {
-        assert(!empty());
+        if (empty()) throw std::out_of_range("buffer has no obj");
         return (*this)[size_ - 1];
     }
 
@@ -514,7 +514,7 @@ public:
     {
         if (size_ == 0)
         {
-            throw std::logic_error("can`t pop nothing");
+            throw std::out_of_range("can`t pop nothing");
         }
 
         allocator_traits::destroy(allocator_, std::addressof(data_[real_index(size_ - 1)]));
@@ -566,7 +566,7 @@ public:
     {
         if (size_ == 0)
         {
-            throw std::logic_error("can`t pop nothing");
+            throw std::out_of_range("can`t pop nothing");
         }
 
         allocator_traits::destroy(allocator_, std::addressof(data_[head_]));

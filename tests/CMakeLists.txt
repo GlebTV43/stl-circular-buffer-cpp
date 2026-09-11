@@ -25,6 +25,8 @@ add_executable(
     no_default_constructible_ut.cpp
     allocator_ut.cpp
     rule_of_five_ut.cpp
+    modifier_ut.cpp
+    throw_ut.cpp
 )
 
 if(RUN_EXT_TESTS)
