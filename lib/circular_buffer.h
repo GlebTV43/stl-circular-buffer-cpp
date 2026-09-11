@@ -500,7 +500,7 @@ public:
         {
             if (capacity_ == 0)
             {
-                return;
+                throw std::length_error("push nothing");
             }
 
             data_[head_] = value;
@@ -530,7 +530,7 @@ public:
         {   
             if (capacity_ == 0)
             {
-                return;
+                throw std::length_error("push nothing");
             }
 
             value_type save = std::move(value);
@@ -581,7 +581,7 @@ public:
         {
             if (capacity_ == 0)
             {
-                return;
+                throw std::length_error("push nothing");
             }
 
             const size_type new_head = (head_ + capacity_ - 1) % capacity_;
@@ -621,7 +621,7 @@ public:
         {
             if (capacity_ == 0)
             {
-                return;
+                throw std::length_error("push nothing");
             }
 
             const size_type new_head = (head_ + capacity_ - 1) % capacity_;
@@ -953,9 +953,26 @@ public:
             tmp.push_back((*this)[ind]);
         }
 
+        size_type available;
+
+        if constexpr (Extendable)
+        {
+            available = max_size() - size_;
+        }
+        else
+        {
+            available = capacity_ - size_;
+        }
+
         for (; first != last; ++first)
         {
+            if (available == 0)
+            {
+                throw std::length_error("insert range is too large");
+            }
+
             tmp.push_back(*first);
+            --available;
         }
 
         for (size_type ind = iter.position_; ind < size_; ++ind)
