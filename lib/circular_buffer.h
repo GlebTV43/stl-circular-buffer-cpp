@@ -480,34 +480,64 @@ public:
 
     void push_back(const value_type& value)
     {
-        if (size_ == capacity_)
+        if (size_ < capacity_)
         {
-            if constexpr (Extendable)
-            {
-                double_memory();
-            } else 
-            {
-                throw std::length_error("can`t extand buffer");
-            }
+            allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), value);
+            ++size_;
+            return;
         }
-        allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), value);
-        ++size_;
+
+        if constexpr (Extendable)
+        {
+            value_type save = value;
+
+            double_memory();
+
+            allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), save);
+            ++size_;
+        }
+        else
+        {
+            if (capacity_ == 0)
+            {
+                return;
+            }
+
+            data_[head_] = value;
+            head_ = (head_ + 1) % capacity_;
+        }
     }
 
     void push_back(value_type&& value)
     {
-        if (size_ == capacity_)
+        if (size_ < capacity_)
         {
-            if constexpr (Extendable)
-            {
-                double_memory();
-            } else 
-            {
-                throw std::length_error("can`t extand buffer");
-            }
+            allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), std::move(value));
+            ++size_;
+            return;
         }
-        allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), std::move(value));
-        ++size_;
+
+        if constexpr (Extendable)
+        {
+            value_type save = std::move(value);
+
+            double_memory();
+
+            allocator_traits::construct(allocator_, std::addressof(data_[real_index(size_)]), std::move(save));
+            ++size_;
+        }
+        else
+        {   
+            if (capacity_ == 0)
+            {
+                return;
+            }
+
+            value_type save = std::move(value);
+
+            data_[head_] = std::move(save);
+            head_ = (head_ + 1) % capacity_;
+        }
     }
 
     void pop_back()
@@ -523,43 +553,83 @@ public:
 
     void push_front(const value_type& value)
     {
-        if (size_ == capacity_)
+        if (size_ < capacity_)
         {
-            if constexpr (Extendable)
-            {
-                double_memory();
-            } else 
-            {
-                throw std::length_error("can`t extand buffer");
-            }
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            allocator_traits::construct(allocator_, std::addressof(data_[new_head]), value);
+
+            head_ = new_head;
+            ++size_;
+            return;
         }
 
-        const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+        if constexpr (Extendable)
+        {
+            value_type save = value;
 
-        allocator_traits::construct(allocator_, std::addressof(data_[new_head]), value);
-        ++size_;
+            double_memory();
 
-        head_ = new_head;
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            allocator_traits::construct(allocator_, std::addressof(data_[new_head]), save);
+
+            head_ = new_head;
+            ++size_;
+        }
+        else
+        {
+            if (capacity_ == 0)
+            {
+                return;
+            }
+
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            data_[new_head] = value;
+            head_ = new_head;
+        }
     }
 
     void push_front(value_type&& value)
     {
-        if (size_ == capacity_)
+        if (size_ < capacity_)
         {
-            if constexpr (Extendable)
-            {
-                double_memory();
-            } else 
-            {
-                throw std::length_error("can`t extand buffer");
-            }
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            allocator_traits::construct(allocator_, std::addressof(data_[new_head]), std::move(value));
+
+            head_ = new_head;
+            ++size_;
+            return;
         }
-        const size_type new_head = (head_ + capacity_ - 1) % capacity_;
 
-        allocator_traits::construct(allocator_, std::addressof(data_[new_head]), std::move(value));
-        ++size_;
+        if constexpr (Extendable)
+        {
+            value_type save = std::move(value);
 
-        head_ = new_head;
+            double_memory();
+
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            allocator_traits::construct(allocator_, std::addressof(data_[new_head]), std::move(save));
+
+            head_ = new_head;
+            ++size_;
+        }
+        else
+        {
+            if (capacity_ == 0)
+            {
+                return;
+            }
+
+            const size_type new_head = (head_ + capacity_ - 1) % capacity_;
+
+            value_type save = std::move(value);
+            data_[new_head] = std::move(save);
+            head_ = new_head;
+        }
     }
 
     void pop_front()
