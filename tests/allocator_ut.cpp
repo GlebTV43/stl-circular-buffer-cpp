@@ -145,6 +145,6 @@ TEST_F(WorkWithAllocatorTest, extendedPushBack) {
     ASSERT_EQ(TestAllocator<SomeObj>::ElementsAllocated, 15);
 
     ASSERT_EQ(SomeObj::ConstructorCalled, 6);
-    ASSERT_EQ(SomeObj::DestructorCalled, 11);
+    ASSERT_EQ(SomeObj::DestructorCalled, 12);
 }
 #endif

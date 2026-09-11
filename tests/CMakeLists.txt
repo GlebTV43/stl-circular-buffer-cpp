@@ -27,6 +27,9 @@ add_executable(
     rule_of_five_ut.cpp
     modifier_ut.cpp
     throw_ut.cpp
+    edge_iterator_ut.cpp
+    lifetime_exception_ut.cpp
+    allocator_advanced_ut.cpp
 )
 
 if(RUN_EXT_TESTS)

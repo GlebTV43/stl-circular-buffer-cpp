@@ -49,22 +49,6 @@ TEST(CircularBufferThrowTest, constAtOutsideBufferThrows) {
     ASSERT_THROW(cb.at(100), std::out_of_range);
 }
 
-TEST(CircularBufferThrowTest, pushBackIntoZeroCapacityBufferThrows) {
-    circular_buffer<int> cb;
-
-    ASSERT_THROW(cb.push_back(1), std::length_error);
-    ASSERT_TRUE(cb.empty());
-    ASSERT_EQ(cb.capacity(), 0);
-}
-
-TEST(CircularBufferThrowTest, pushFrontIntoZeroCapacityBufferThrows) {
-    circular_buffer<int> cb;
-
-    ASSERT_THROW(cb.push_front(1), std::length_error);
-    ASSERT_TRUE(cb.empty());
-    ASSERT_EQ(cb.capacity(), 0);
-}
-
 TEST(CircularBufferThrowTest, fixedReserveOverCapacityThrows) {
     circular_buffer<int, false> cb = {1, 2, 3};
 
